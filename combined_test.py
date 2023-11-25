@@ -113,6 +113,10 @@ def process_line_item_data(input_file_path):
     data = {'OrderId': order_id_sequence}
     df_order_count = pd.DataFrame(data)
 
+    
+
+    # df_order_count['OrderCount'] = df_order_count.apply(lambda row: order_id_product_names[row['OrderId']] if row['OrderCount'] == 1 else 'mix', axis=1)
+
     # Add a column with the count of orders for each unique OrderId
     df_order_count['OrderCount'] = [df_line_item[df_line_item['OrderId'] == unique_order_id].shape[0] for unique_order_id in order_id_sequence]
 
