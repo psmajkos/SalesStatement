@@ -4,14 +4,9 @@ import pandas as pd
 import easygui
 if __name__ == "__main__":
 
-    # root = Tk()
-
     def get_input_file_path():
-        # root = Tk()
-        # root.withdraw()
         file_path = easygui.fileopenbox(title="Select Input CSV File", filetypes=["*.csv"])
-        # root.mainloop()
-        # root.destroy()  # Add this line to destroy the Tkinter root window
+
         return file_path
 
     def process_order_report(input_file_path, output_excel_file_path):
@@ -43,6 +38,7 @@ if __name__ == "__main__":
 
                 # Process the non-empty row
                 try:
+                    
                     # Convert 'TotalToPayAmount' column to numeric values
                     row['TotalToPayAmount'] = pd.to_numeric(row['TotalToPayAmount'], errors='coerce')
 
@@ -52,14 +48,10 @@ if __name__ == "__main__":
                     # Concatenate selected columns into a single column
                     row['CombinedAddress'] = ', '.join([row['BuyerName'], row['BuyerAddress'], row['BuyerZip'], row['BuyerCity'], row['BuyerCountryCode'], row['BuyerPhone']])
 
-                    # Add a new column 'TotalPaidAmountDivided' by dividing 'TotalToPayAmount' by 1.23
-                    row['TotalPaidAmountDivided'] = row['TotalToPayAmount'] / 1.23
-
-                    # Add a new column 'Difference' by subtracting 'TotalPaidAmountDivided' from 'TotalToPayAmount'
-                    row['Wartość VAT'] = row['TotalToPayAmount'] - row['TotalPaidAmountDivided']
-
-                    # Add a new column 'kwota otrzymana'
-                    row['kwota otrzymana'] = row['TotalToPayAmount']
+                           # Check 'DeliveryMethod' value and clear the cell if 'inpost' is not a substring
+                    if 'inpost' not in row['DeliveryMethod'].lower():
+                        row['DeliveryMethod'] = None
+                        row['DeliveryAmount'] = 0  # Clear 'DeliveryAmount' when 'DeliveryMethod' is empty
 
                     # Reorder columns and append selected data to df_selected
                     selected_data = [row[column] for column in selected_columns]
@@ -68,6 +60,38 @@ if __name__ == "__main__":
                     print(f"Error processing row: {row}")
                     print(f"Error details: {e}")
                     continue
+
+        df_selected['Brutto z wysyłką'] = pd.to_numeric(df_selected['DeliveryAmount'], errors='coerce') + pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce')
+
+        # Handle non-numeric values in 'SumAmount' (replace NaN with 0 or any other value as needed)
+        df_selected['Brutto z wysyłką'].fillna(0, inplace=True)
+
+        df_selected['wartość netto'] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') / 1.23
+
+        df_selected['Stawka VAT'] = "23%"
+
+        df_selected["wartość VAT"] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') - pd.to_numeric(df_selected['wartość netto'], errors='coerce')
+
+        df_selected["Kwota otrzymana"] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce')
+
+        df_selected['Faktura VAT'] = ''
+
+        df_selected['Firma/os. p.'] = ''
+
+        # Load existing "SelectedData" sheet if it exists
+        try:
+            existing_selected_data = pd.read_excel(output_excel_file_path, sheet_name='SelectedData')
+        except FileNotFoundError:
+            existing_selected_data = pd.DataFrame()
+
+        # Concatenate existing data with the new data
+        df_selected = pd.concat([existing_selected_data, df_selected], ignore_index=True)
+
+        # Save DataFrames to separate sheets in the same Excel file
+        with pd.ExcelWriter(output_excel_file_path, engine='xlsxwriter') as writer:
+
+            # Add a sheet for selected data with the new columns
+            df_selected.to_excel(writer, sheet_name='SelectedData', index=False, startrow=reserved_rows)
 
         # Save DataFrames to separate sheets in the same Excel file
         with pd.ExcelWriter(output_excel_file_path, engine='xlsxwriter') as writer:
@@ -139,9 +163,7 @@ if __name__ == "__main__":
     if __name__ == "__main__":
         input_file_path = get_input_file_path()
 
-        output_excel_file_path = 'Zestawienie_sprzedazy_allegro.xlsx'
+        output_excel_file_path = 'Zestawienie_pansen_extra1.xlsx'
 
         # Call the function
         process_order_report(input_file_path, output_excel_file_path)
-        # root.destory()
-    # root.mainloop()
