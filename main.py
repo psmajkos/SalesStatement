@@ -14,7 +14,7 @@ if __name__ == "__main__":
         reserved_rows = 3
 
         # Define the columns you want to select
-        selected_columns = ['OrderDate', 'BuyerName', 'BuyerPhone', 'BuyerAddress', 'BuyerZip', 'BuyerCity', 'BuyerCountryCode', 'DeliveryMethod', 'DeliveryAmount', 'TotalToPayAmount']
+        selected_columns = ['OrderDate', 'BuyerName', 'BuyerPhone', 'SellerStatus','BuyerAddress', 'BuyerZip', 'BuyerCity', 'BuyerCountryCode', 'DeliveryMethod', 'DeliveryAmount', 'TotalToPayAmount']
 
         # Create DataFrames to store selected data
         df_selected = pd.DataFrame(columns=selected_columns)
@@ -49,9 +49,16 @@ if __name__ == "__main__":
                     row['CombinedAddress'] = ', '.join([row['BuyerName'], row['BuyerAddress'], row['BuyerZip'], row['BuyerCity'], row['BuyerCountryCode'], row['BuyerPhone']])
 
                     # Check 'DeliveryMethod' value and clear the cell if 'inpost' is not a substring
-                    if 'inpost' not in row['DeliveryMethod'].lower():
+                    if 'inpost' in row['DeliveryMethod'].lower():
                         row['DeliveryMethod'] = None
                         row['DeliveryAmount'] = 0  # Clear 'DeliveryAmount' when 'DeliveryMethod' is empty
+
+                    # # Check 'SellerStatus' value and fill row with red color
+                    # if 'CANCELED' not in row['SellerStatus'].lower():
+                    #     for col in selected_columns:
+                    #         df_selected.at[len(df_selected), col] = f'background-color: red; {row[col]}'
+                    #     # row['DeliveryMethod'] = None
+                        # row['DeliveryAmount'] = 0  # Clear 'DeliveryAmount' when 'DeliveryMethod' is empty
 
 
                     # Reorder columns and concatenate selected data to df_selected
@@ -64,7 +71,7 @@ if __name__ == "__main__":
                     print(f"Error details: {e}")
                     continue
 
-        df_selected['Brutto z wysyłką'] = pd.to_numeric(df_selected['DeliveryAmount'], errors='coerce') + pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce')
+        df_selected['Brutto z wysyłką'] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') - pd.to_numeric(df_selected['DeliveryAmount'], errors='coerce')
 
         # Handle non-numeric values in 'SumAmount' (replace NaN with 0 or any other value as needed)
         df_selected['Brutto z wysyłką'].fillna(0, inplace=True)
