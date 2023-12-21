@@ -2,11 +2,16 @@ import csv
 # from tkinter import filedialog, Tk
 import pandas as pd
 import easygui
+import xlsxwriter 
 if __name__ == "__main__":
 
     def get_input_file_path():
         file_path = easygui.fileopenbox(title="Select Input CSV File", filetypes=["*.csv"])
 
+        return file_path
+    
+    def get_output_file_path():
+        file_path = easygui.filesavebox(title="Save As", default="Zestawienie_pansen.xlsx", filetypes=["*.xlsx"])
         return file_path
 
     def process_order_report(input_file_path, output_excel_file_path):
@@ -71,18 +76,41 @@ if __name__ == "__main__":
                     print(f"Error details: {e}")
                     continue
 
-        df_selected['Brutto z wysyłką'] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') - pd.to_numeric(df_selected['DeliveryAmount'], errors='coerce')
+        # df_selected['Brutto z wysyłką'] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') - pd.to_numeric(df_selected['DeliveryAmount'], errors='coerce')
 
-        # Handle non-numeric values in 'SumAmount' (replace NaN with 0 or any other value as needed)
-        df_selected['Brutto z wysyłką'].fillna(0, inplace=True)
+        # # Handle non-numeric values in 'SumAmount' (replace NaN with 0 or any other value as needed)
+        # df_selected['Brutto z wysyłką'].fillna(0, inplace=True)
 
-        df_selected['wartość netto'] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') / 1.23
+        # df_selected['wartość netto'] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') / 1.23
 
+        # df_selected['Stawka VAT'] = "23%"
+
+        # df_selected["wartość VAT"] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') - pd.to_numeric(df_selected['wartość netto'], errors='coerce')
+
+        # df_selected["Kwota otrzymana"] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce')
+
+        # # Create formulas using xlsxwriter
+        # df_selected['Brutto z wysyłką'] = f"=K{reserved_rows + 2}-J{reserved_rows + 2}"
+        # df_selected['wartość netto'] = f"=K{reserved_rows + 2}/1.23"
+        # df_selected['Stawka VAT'] = "23%"
+        # df_selected["wartość VAT"] = f"=K{reserved_rows + 2}-M{reserved_rows + 2}"
+        # df_selected["Kwota otrzymana"] = f"=M{reserved_rows + 2}+O{reserved_rows + 2}"
+                # Create formulas using xlsxwriter
+
+            # Convert 'DeliveryAmount' column to numeric values
+        df_selected['DeliveryAmount'] = pd.to_numeric(df_selected['DeliveryAmount'], errors='coerce')
+
+        # Replace dots with commas in the 'DeliveryAmount' column
+        df_selected['DeliveryAmount'] = df_selected['DeliveryAmount'].astype(str).str.replace('.', ',')
+
+        df_selected['Brutto'] = df_selected.apply(lambda row: f"=K{reserved_rows + row.name + 2}-J{reserved_rows + row.name + 2}", axis=1)
+        df_selected['wartość netto'] = df_selected.apply(lambda row: f"=L{reserved_rows + row.name + 2}/1.23", axis=1)
         df_selected['Stawka VAT'] = "23%"
+        # df_selected["wartość VAT"] = df_selected.apply(lambda row: f"=K{reserved_rows + row.name + 2}-M{reserved_rows + row.name + 2}", axis=1)
+        df_selected["wartość VAT"] = df_selected.apply(lambda row: f"=M{reserved_rows + row.name + 2}*N{reserved_rows + row.name + 2}", axis=1)
 
-        df_selected["wartość VAT"] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce') - pd.to_numeric(df_selected['wartość netto'], errors='coerce')
+        df_selected["Kwota otrzymana"] = df_selected.apply(lambda row: f"=M{reserved_rows + row.name + 2}+O{reserved_rows + row.name + 2}", axis=1)
 
-        df_selected["Kwota otrzymana"] = pd.to_numeric(df_selected['TotalToPayAmount'], errors='coerce')
 
         df_selected['Faktura VAT'] = ''
 
@@ -101,6 +129,7 @@ if __name__ == "__main__":
         df_selected = pd.concat([existing_selected_data, df_selected], ignore_index=True)
 
         with pd.ExcelWriter(output_excel_file_path, engine='xlsxwriter') as writer:
+            workbook = writer.book  # Get the workbook
             # Add a sheet for additional data or headers
             additional_data_sheet = pd.DataFrame({'Header1': ['Value1'], 'Header2': ['Value2'], 'Header3': ['Value3']})
             additional_data_sheet.to_excel(writer, sheet_name='AdditionalData', index=False)
@@ -167,9 +196,15 @@ if __name__ == "__main__":
         return df_order_count
         
     if __name__ == "__main__":
-        input_file_path = get_input_file_path()
+        # input_file_path = get_input_file_path()
 
-        output_excel_file_path = 'Zestawienie_pansen_extra1.xlsx'
+        # output_excel_file_path = 'Zestawienie_pansen_extra1.xlsx'
+
+        # # Call the function
+        # process_order_report(input_file_path, output_excel_file_path)
+
+        input_file_path = get_input_file_path()
+        output_excel_file_path = get_output_file_path()
 
         # Call the function
         process_order_report(input_file_path, output_excel_file_path)
